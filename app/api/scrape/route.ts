@@ -13,6 +13,11 @@ export async function POST(request: NextRequest) {
     }
     const wikiSections = await scrapeWikipediaPage(url);
     await embedSections(wikiSections, url, userId);
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/track-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, url }),
+    });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     console.error('Error in /api/scrape:', err);

@@ -59,12 +59,27 @@ export default function HomePage() {
     }
   }, [messages]);
 
+  // Check if the user has already scraped some Wikipedia URLs :)
+  useEffect(() => {
+    const checkHistory = async () => {
+      const res = await fetch(`/api/user-history?userId=${userId.current}`);
+      const { urls } = await res.json();
+      if (urls?.length > 0) {
+        setIsScraped(true);
+      }
+    };
+    checkHistory();
+  }, []);
+
   return (
     <div className="w-full min-h-screen bg-white">
       <main className="mx-auto max-w-2xl p-6 flex flex-col gap-8">
         <h1 className="text-3xl font-semibold text-center tracking-tight text-black">
           Wikipedia RAG Chatbot
         </h1>
+        <p className="text-sm text-gray-500 text-center">
+          Your ID: <code className="font-mono">{userId.current}</code>
+        </p>
         <section className="w-full flex flex-col sm:flex-row gap-2">
           <input
             className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-black focus:outline-none focus:border-gray-500 placeholder-gray-500 transition-colors"
