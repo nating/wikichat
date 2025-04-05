@@ -19,7 +19,7 @@ export async function DELETE(req: NextRequest) {
 
     // Delete from Pinecone
     if (vectorIds.length > 0) {
-      await pineconeIndex.deleteMany({ ids: vectorIds });
+      await pineconeIndex.deleteMany(vectorIds);
     }
 
     // Delete from Neon

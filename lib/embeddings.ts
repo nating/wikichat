@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { storeChunks, queryChunks } from './vector-store';
 import { db } from './db';
 import { vectorMetadata } from './db/schema';
+import { toUrlSafeBase64 } from './utils';
 
 const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || '4000', 10);
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small'
@@ -47,7 +48,7 @@ export async function embedSections(
     values: chunks,
   });
 
-  const safeUrl = Buffer.from(url).toString('base64');
+  const safeUrl = toUrlSafeBase64(url);
 
   const chunkData = chunks.map((chunk, i) => ({
     content: chunk,
