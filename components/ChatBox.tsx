@@ -21,19 +21,28 @@ export function ChatBox({ messages }: ChatBoxProps) {
   return (
     <div
       ref={chatBoxRef}
-      className="rounded-xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white p-4 overflow-y-auto shadow-inner space-y-3 font-sans"
+      className="rounded-xl border border-gray-300 dark:border-gray-700 bg-background p-4 overflow-y-auto shadow-inner space-y-3 font-sans"
       style={{ flexGrow: 1, height: '55vh' }}
     >
       {messages.map((msg, idx) => {
         const isUser = msg.role === 'user';
+        const time = new Date(msg.createdAt ?? Date.now()).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
         return (
-          <div
-            key={idx}
-            className={`max-w-[80%] px-4 py-3 rounded-xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm ${
-              isUser ? 'ml-auto bg-blue-100 text-gray-900' : 'mr-auto bg-gray-100 text-gray-800'
-            }`}
-          >
-            {msg.content}
+          <div key={idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} group`}>
+            <div
+              className={`max-w-[80%] px-4 py-3 rounded-xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm ${
+                isUser ? 'ml-auto bg-accent/60 text-white' : 'mr-auto bg-brand/60 text-white'
+              }`}
+            >
+              {msg.content}
+            </div>
+            <span className="hidden group-hover:block text-xs text-gray-400 mt-1 font-sans transition-opacity duration-300">
+              {time}
+            </span>
           </div>
         );
       })}

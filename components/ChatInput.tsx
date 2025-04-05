@@ -14,7 +14,7 @@ export function ChatInput({ input, handleInputChange, handleSubmit }: ChatInputP
       className="w-full flex flex-col sm:flex-row gap-3 items-end pt-4"
     >
       <input
-        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-800 placeholder-gray-500 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 font-sans text-base"
+        className="flex-1 h-[48px] rounded-lg border border-gray-300 dark:border-gray-700 bg-background px-4 text-foreground placeholder-gray-500 shadow-inner focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand font-sans text-base"
         type="text"
         placeholder="Ask a question about the article..."
         value={input}
@@ -22,7 +22,7 @@ export function ChatInput({ input, handleInputChange, handleSubmit }: ChatInputP
       />
       <button
         type="submit"
-        className="h-[48px] rounded-lg px-6 bg-gradient-to-br from-sky-500 to-blue-600 text-white text-sm font-semibold hover:from-sky-600 hover:to-blue-700 transition font-sans shadow"
+        className="h-[48px] rounded-lg px-6 text-sm font-semibold font-sans shadow bg-brand text-white hover:bg-[--color-brand-dark] transform active:scale-[0.97] transition duration-150"
       >
         Send
       </button>

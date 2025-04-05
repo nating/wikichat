@@ -10,6 +10,7 @@ import { UrlInput } from '@/components/UrlInput';
 import { ScrapedList } from '@/components/ScrapedList';
 import { ChatBox } from '@/components/ChatBox';
 import { ChatInput } from '@/components/ChatInput';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 
 function getOrCreateUserId(): string {
   if (typeof window === 'undefined') return '';
@@ -148,11 +149,12 @@ export default function HomePage() {
   }, [wikiUrl]);
 
   return (
-    <div className="w-full min-h-screen bg-white">
+    <div className="w-full min-h-screen bg-background">
       <main className="mx-auto max-w-2xl p-6 flex flex-col gap-8">
+        <DarkModeToggle />
         <header className="flex flex-col items-center gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-black">Wikipedia RAG Chatbot</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground-base">Wikipedia RAG Chatbot</h1>
+          <p className="text-sm text-foreground-base-500">
             Your ID: <code className="font-mono">{userId.current}</code>
           </p>
         </header>
@@ -179,7 +181,7 @@ export default function HomePage() {
             />
           </>
         ) : (
-          <p className="text-gray-700 italic text-sm text-center">
+          <p className="text-foreground-base-700 italic text-sm text-center">
             Please scrape a Wikipedia page to begin chatting.
           </p>
         )}

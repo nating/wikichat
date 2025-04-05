@@ -24,7 +24,7 @@ export function UrlInput({
     <section className="w-full flex flex-col gap-2">
       <div className="flex flex-col sm:flex-row gap-2 items-stretch">
         <input
-          className="flex-1 h-[48px] rounded-lg border border-gray-300 bg-white px-4 text-gray-800 placeholder-gray-500 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 font-sans text-base"
+          className="flex-1 h-[48px] rounded-lg border border-gray-300 dark:border-gray-700 bg-background px-4 text-foreground placeholder-gray-500 shadow-inner focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand font-sans text-base"
           type="text"
           placeholder="Wikipedia article URL..."
           value={wikiUrl}
@@ -33,10 +33,10 @@ export function UrlInput({
         <button
           onClick={onSubmit}
           disabled={!wikiUrl || disabled}
-          className={`h-[48px] rounded-lg px-6 text-sm font-semibold transition font-sans shadow-sm ${
-            disabled
-              ? 'bg-gray-300 text-white cursor-not-allowed'
-              : 'bg-gradient-to-br from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700'
+          className={`h-[48px] rounded-lg px-6 text-sm font-semibold font-sans shadow transition duration-150 transform active:scale-[0.97] ${
+            !wikiUrl || disabled
+              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+              : 'bg-brand text-white hover:bg-[--color-brand-dark]'
           }`}
         >
           {scraping ? 'Scraping...' : alreadyScraped ? 'Already Scraped' : 'Scrape'}
