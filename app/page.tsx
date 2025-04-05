@@ -12,6 +12,8 @@ import { ChatBox } from '@/components/ChatBox';
 import { ChatInput } from '@/components/ChatInput';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
 
+type ScrapedUrl = { url: string };
+
 function getOrCreateUserId(): string {
   if (typeof window === 'undefined') return '';
   const existing = localStorage.getItem('user-id');
@@ -130,7 +132,7 @@ export default function HomePage() {
         const { urls } = await res.json();
         if (urls?.length > 0) {
           setIsScraped(true);
-          setUrls(urls.map((u: any) => u.url));
+          setUrls((urls as ScrapedUrl[]).map((u) => u.url));
         }
       } catch (err) {
         console.warn('Failed to fetch user history:', err);
