@@ -26,6 +26,8 @@ export default function HomePage() {
     body: { userId: userId.current },
   });
 
+  const urlAlreadyScraped = urls.includes(wikiUrl);
+
   /**
    * Submit the Wikipedia page URL entered by the user to the scrape endpoint
    */
@@ -33,15 +35,31 @@ export default function HomePage() {
     try {
       setScraping(true);
       setIsScraped(false);
+
       const res = await fetch('/api/scrape', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
       });
+
       if (!res.ok) throw new Error('Failed to scrape page');
+
+      const trackRes = await fetch('/api/track-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
+      });
+
+      const trackJson = await trackRes.json();
+
+      if (trackJson.alreadyExists) {
+        alert('This URL has already been scraped.');
+      } else {
+        setUrls((prev) => [...prev, wikiUrl]); // Add new URL to UI
+      }
+
       setIsScraped(true);
+      setWikiUrl('');
     } catch (err) {
       alert('Failed to scrape the page.');
     } finally {
@@ -107,10 +125,12 @@ export default function HomePage() {
           />
           <button
             onClick={submitUrl}
-            disabled={!wikiUrl || scraping}
-            className="border border-black rounded-md px-4 py-2 bg-black text-white hover:bg-gray-800 transition-colors"
+            disabled={!wikiUrl || scraping || urlAlreadyScraped}
+            className={`border border-black rounded-md px-4 py-2 text-white transition-colors ${
+              scraping || urlAlreadyScraped ? 'bg-gray-400' : 'bg-black hover:bg-gray-800'
+            }`}
           >
-            {scraping ? 'Scraping...' : 'Scrape'}
+            {scraping ? 'Scraping...' : urlAlreadyScraped ? 'Already Scraped' : 'Scrape'}
           </button>
         </section>
         {urls.length > 0 && (
