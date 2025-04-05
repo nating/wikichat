@@ -1,16 +1,28 @@
-import puppeteer from 'puppeteer';
+import type { Page } from 'puppeteer-core';
 
-/**
- * Scrapes a Wikipedia page and returns an array of the page's sections
- */
-export async function scrapeWikipediaPage(url: string): Promise<Array<{ heading: string; content: string }>> {
+export async function scrapeWikipediaPage(
+  url: string
+): Promise<Array<{ heading: string; content: string }>> {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const puppeteer = isDev
+    ? await import('puppeteer')
+    : await import('puppeteer-core');
+
+  let chromium: typeof import('chrome-aws-lambda') | null = null;
+  if (!isDev) {
+    chromium = (await import('chrome-aws-lambda')).default;
+  }
+
   const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: chromium?.headless ?? true,
+    args: chromium?.args ?? ['--no-sandbox', '--disable-setuid-sandbox'],
+    defaultViewport: chromium?.defaultViewport ?? null,
+    executablePath: isDev ? undefined : await chromium!.executablePath,
   });
 
   try {
-    const page = await browser.newPage();
+    const page = (await browser.newPage()) as Page;
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
     const sections = await page.evaluate(() => {
@@ -54,7 +66,7 @@ export async function scrapeWikipediaPage(url: string): Promise<Array<{ heading:
         console.error('Scraping failed in page.evaluate:', e);
         return [];
       }
-    });
+    }) as { heading: string; content: string }[];
 
     return sections;
   } finally {
