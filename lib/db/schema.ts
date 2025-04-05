@@ -11,3 +11,11 @@ export const scrapedUrls = pgTable('scraped_urls', {
   url: text('url').notNull(),
   scrapedAt: timestamp('scraped_at').defaultNow(),
 });
+
+export const vectorMetadata = pgTable('vector_metadata', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  url: text('url').notNull(),
+  vectorId: text('vector_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});

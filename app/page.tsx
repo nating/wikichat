@@ -20,6 +20,7 @@ export default function HomePage() {
   const [wikiUrl, setWikiUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
+  const [urls, setUrls] = useState<string[]>([]);
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat',
     body: { userId: userId.current },
@@ -48,6 +49,21 @@ export default function HomePage() {
     }
   };
 
+  /**
+   * Delete a Wikipedia page URL previously entered by the user
+   */
+  const deleteUrl = async (urlToDelete: string) => {
+    const confirmed = confirm(`Are you sure you want to delete:\n\n${urlToDelete}?`);
+    if (!confirmed) return;
+
+    await fetch('/api/delete-url', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId.current, url: urlToDelete }),
+    });
+    setUrls((prev) => prev.filter((u) => u !== urlToDelete));
+  };
+
   // Scroll chat box to latest messages whenever messages are updated
   const chatBoxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -66,6 +82,7 @@ export default function HomePage() {
       const { urls } = await res.json();
       if (urls?.length > 0) {
         setIsScraped(true);
+        setUrls(urls.map((u: any) => u.url));
       }
     };
     checkHistory();
@@ -96,6 +113,27 @@ export default function HomePage() {
             {scraping ? 'Scraping...' : 'Scrape'}
           </button>
         </section>
+        {urls.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-black">Scraped Pages</h2>
+            <ul className="space-y-2">
+              {urls.map((url) => (
+                <li
+                  key={url}
+                  className="flex justify-between items-center bg-gray-100 rounded-md px-3 py-2 text-sm text-black break-all"
+                >
+                  <span>{url}</span>
+                  <button
+                    onClick={() => deleteUrl(url)}
+                    className="ml-2 text-red-600 hover:text-red-800 text-xs"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {isScraped ? (
           <section className="w-full flex flex-col gap-4">
             <div

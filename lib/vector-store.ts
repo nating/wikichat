@@ -5,8 +5,8 @@ import { ChunkData } from './types';
  * Store chunks in Pinecone, tagged by `url`
  */
 export async function storeChunks(userId: string, chunks: ChunkData[]) {
-  const vectors = chunks.map((chunk, i) => ({
-    id: `${userId}-${chunk.url}-${i}`,
+  const vectors = chunks.map((chunk) => ({
+    id: chunk.vectorId,
     values: chunk.embedding,
     metadata: {
       content: chunk.content,

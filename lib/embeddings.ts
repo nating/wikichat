@@ -1,7 +1,8 @@
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { storeChunks, queryChunks } from './vector-store';
-import similarity from 'compute-cosine-similarity';
+import { db } from './db';
+import { vectorMetadata } from './db/schema';
 
 const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || '4000', 10);
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small'
@@ -46,9 +47,17 @@ export async function embedSections(sections: Array<{ heading: string; content: 
     content: chunk,
     embedding: embeddings[i],
     url,
+    vectorId: `${userId}-${url}-${i}`,
   }));
 
   await storeChunks(userId, chunkData);
+  await db.insert(vectorMetadata).values(
+    chunkData.map((chunk) => ({
+      userId,
+      url,
+      vectorId: chunk.vectorId,
+    }))
+  );
 }
 
 export async function getRelevantChunks(query: string, userId: string, numberOfResults = 3) {
