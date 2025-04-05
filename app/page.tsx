@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { sanitizeWikipediaUrl } from '@/lib/utils';
 
 /**
  * Get the user's ID or create one for them if none exists
@@ -21,12 +22,17 @@ export default function HomePage() {
   const [scraping, setScraping] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
   const [urls, setUrls] = useState<string[]>([]);
+  const [warning, setWarning] = useState('');
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat',
     body: { userId: userId.current },
   });
 
-  const urlAlreadyScraped = urls.includes(wikiUrl);
+  const alreadyScraped = (() => {
+    const cleanInput = sanitizeWikipediaUrl(wikiUrl);
+    if (!cleanInput) return false;
+    return urls.includes(cleanInput);
+  })();
 
   /**
    * Submit the Wikipedia page URL entered by the user to the scrape endpoint
@@ -36,42 +42,63 @@ export default function HomePage() {
       setScraping(true);
       setIsScraped(false);
 
+      if (!wikiUrl.trim()) {
+        setWarning('Please enter a Wikipedia URL.');
+        return;
+      }
+
+      const sanitizedUrl = sanitizeWikipediaUrl(wikiUrl);
+      if (!sanitizedUrl) {
+        setWarning('Please enter a valid Wikipedia URL (e.g. en.wikipedia.org, ja.wikipedia.org)');
+        return;
+      }
+
+      if (urls.includes(sanitizedUrl)) {
+        setWarning('You’ve already scraped this page.');
+        return;
+      }
+
+      // Scrape request
       const res = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
-      });
-      const trackRes = await fetch('/api/track-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
+        body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
       });
 
       if (!res.ok) {
         const { error } = await res.json();
-        alert(error || 'Failed to scrape Wikipedia.');
+        setWarning(error || 'Failed to scrape the page.');
         return;
       }
 
+      // Track URL
+      const trackRes = await fetch('/api/track-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
+      });
+
       const trackJson = await trackRes.json();
       if (!trackRes.ok || !trackJson.success) {
-        alert(trackJson.error || 'Tracking failed.');
+        setWarning(trackJson.error || 'Failed to track URL.');
         return;
       }
 
       if (!trackJson.alreadyExists) {
-        setUrls((prev) => [...prev, wikiUrl]);
+        setUrls((prev) => [...prev, sanitizedUrl]);
       }
 
       setIsScraped(true);
-      setWikiUrl('');
+      setWikiUrl(sanitizedUrl);
+      setWarning('');
     } catch (err) {
-      alert('Something went wrong while scraping.');
-      console.error(err);
+      console.error('Scrape error:', err);
+      setWarning('Something went wrong while scraping.');
     } finally {
       setScraping(false);
     }
   };
+
 
   /**
    * Delete a Wikipedia page URL previously entered by the user
@@ -129,6 +156,21 @@ export default function HomePage() {
     checkHistory();
   }, []);
 
+  // Set a warning if the wikipedia url input value is invalid
+  useEffect(() => {
+    if (!wikiUrl) {
+      setWarning('');
+      return;
+    }
+
+    const sanitized = sanitizeWikipediaUrl(wikiUrl);
+    if (!sanitized) {
+      setWarning('Please enter a valid Wikipedia article URL.');
+    } else {
+      setWarning('');
+    }
+  }, [wikiUrl]);
+
   return (
     <div className="w-full min-h-screen bg-white">
       <main className="mx-auto max-w-2xl p-6 flex flex-col gap-8">
@@ -148,14 +190,17 @@ export default function HomePage() {
           />
           <button
             onClick={submitUrl}
-            disabled={!wikiUrl || scraping || urlAlreadyScraped}
+            disabled={!wikiUrl || scraping || alreadyScraped}
             className={`border border-black rounded-md px-4 py-2 text-white transition-colors ${
-              scraping || urlAlreadyScraped ? 'bg-gray-400' : 'bg-black hover:bg-gray-800'
+              scraping || alreadyScraped ? 'bg-gray-400' : 'bg-black hover:bg-gray-800'
             }`}
           >
-            {scraping ? 'Scraping...' : urlAlreadyScraped ? 'Already Scraped' : 'Scrape'}
+            {scraping ? 'Scraping...' : alreadyScraped ? 'Already Scraped' : 'Scrape'}
           </button>
         </section>
+        {warning && (
+          <p className="text-sm text-red-600 italic">{warning}</p>
+        )}
         {urls.length > 0 && (
           <section className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold text-black">Scraped Pages</h2>
