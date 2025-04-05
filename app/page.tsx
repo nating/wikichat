@@ -41,27 +41,33 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
       });
-
-      if (!res.ok) throw new Error('Failed to scrape page');
-
       const trackRes = await fetch('/api/track-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
       });
 
-      const trackJson = await trackRes.json();
+      if (!res.ok) {
+        const { error } = await res.json();
+        alert(error || 'Failed to scrape Wikipedia.');
+        return;
+      }
 
-      if (trackJson.alreadyExists) {
-        alert('This URL has already been scraped.');
-      } else {
-        setUrls((prev) => [...prev, wikiUrl]); // Add new URL to UI
+      const trackJson = await trackRes.json();
+      if (!trackRes.ok || !trackJson.success) {
+        alert(trackJson.error || 'Tracking failed.');
+        return;
+      }
+
+      if (!trackJson.alreadyExists) {
+        setUrls((prev) => [...prev, wikiUrl]);
       }
 
       setIsScraped(true);
       setWikiUrl('');
     } catch (err) {
-      alert('Failed to scrape the page.');
+      alert('Something went wrong while scraping.');
+      console.error(err);
     } finally {
       setScraping(false);
     }
@@ -71,15 +77,25 @@ export default function HomePage() {
    * Delete a Wikipedia page URL previously entered by the user
    */
   const deleteUrl = async (urlToDelete: string) => {
-    const confirmed = confirm(`Are you sure you want to delete:\n\n${urlToDelete}?`);
+    const confirmed = confirm(`Delete:\n\n${urlToDelete}?`);
     if (!confirmed) return;
 
-    await fetch('/api/delete-url', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: userId.current, url: urlToDelete }),
-    });
-    setUrls((prev) => prev.filter((u) => u !== urlToDelete));
+    try {
+      const res = await fetch('/api/delete-url', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId.current, url: urlToDelete }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        alert(result.error || 'Delete failed.');
+        return;
+      }
+      setUrls((prev) => prev.filter((u) => u !== urlToDelete));
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Could not delete. Try again later.');
+    }
   };
 
   // Scroll chat box to latest messages whenever messages are updated
@@ -96,11 +112,18 @@ export default function HomePage() {
   // Check if the user has already scraped some Wikipedia URLs :)
   useEffect(() => {
     const checkHistory = async () => {
-      const res = await fetch(`/api/user-history?userId=${userId.current}`);
-      const { urls } = await res.json();
-      if (urls?.length > 0) {
-        setIsScraped(true);
-        setUrls(urls.map((u: any) => u.url));
+      try {
+        const res = await fetch(`/api/user-history?userId=${userId.current}`);
+        if (!res.ok) {
+          return;
+        }
+        const { urls } = await res.json();
+        if (urls?.length > 0) {
+          setIsScraped(true);
+          setUrls(urls.map((u: any) => u.url));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user history:', err);
       }
     };
     checkHistory();

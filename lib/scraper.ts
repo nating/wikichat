@@ -5,50 +5,59 @@ import puppeteer from 'puppeteer';
  */
 export async function scrapeWikipediaPage(url: string): Promise<Array<{ heading: string; content: string }>> {
   const browser = await puppeteer.launch({
-    headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox']}, // For Tiago's machine just in case!
-  );
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
 
-  const sections = await page.evaluate(() => {
-    const mainPageContent = document.querySelector('#mw-content-text');
-    if (!mainPageContent) return [];
+  try {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-    // Remove certain tags with text we want to ignore
-    mainPageContent.querySelectorAll(
-        'style, script, noscript, sup, #External_links, #References, #See_also, #Further_reading, .geo-inline-hidden'
-    ).forEach((element: Element) => element.remove());
+    const sections = await page.evaluate(() => {
+      try {
+        const mainPageContent = document.querySelector('#mw-content-text');
+        if (!mainPageContent) return [];
 
-    // Get just the tags with the information that we want
-    const infoElements = Array.from(mainPageContent.querySelectorAll('h2, p'));
+        mainPageContent.querySelectorAll(
+          'style, script, noscript, sup, #External_links, #References, #See_also, #Further_reading, .geo-inline-hidden'
+        ).forEach((el) => el.remove());
 
-    // Create an array of sections. Create each section from a header and the contents that follows it.
-    const results: { heading: string; content: string }[] = [];
-    let currentHeading = 'Introduction';
-    let currentContent: string[] = [];
-    infoElements.forEach((element) => {
-      const tagName = element.tagName.toUpperCase();
-      if (tagName === 'H2') {
+        const infoElements = Array.from(mainPageContent.querySelectorAll('h2, p'));
+        const results: { heading: string; content: string }[] = [];
+
+        let currentHeading = 'Introduction';
+        let currentContent: string[] = [];
+
+        infoElements.forEach((el) => {
+          const tag = el.tagName.toUpperCase();
+          if (tag === 'H2') {
+            if (currentContent.length > 0) {
+              results.push({
+                heading: currentHeading,
+                content: currentContent.join('\n').trim(),
+              });
+            }
+            currentHeading = el.textContent?.trim() || '(no section heading)';
+            currentContent = [];
+          } else if (tag === 'P') {
+            const text = el.textContent?.trim();
+            if (text) currentContent.push(text);
+          }
+        });
+
         if (currentContent.length > 0) {
-          results.push({
-            heading: currentHeading,
-            content: currentContent.join('\n').trim(),
-          });
+          results.push({ heading: currentHeading, content: currentContent.join('\n').trim() });
         }
-        currentHeading = element.textContent?.trim() || '(no section heading)';
-        currentContent = [];
-      } else if (tagName === 'P') {
-        const text = element.textContent?.trim();
-        if (text) {
-          currentContent.push(text);
-        }
+
+        return results;
+      } catch (e) {
+        console.error('Scraping failed in page.evaluate:', e);
+        return [];
       }
     });
-    if (currentContent.length > 0) {
-      results.push({ heading: currentHeading, content: currentContent.join('\n').trim() });
-    }
-    return results;
-  });
-  await browser.close();
-  return sections;
+
+    return sections;
+  } finally {
+    await browser.close();
+  }
 }
