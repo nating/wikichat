@@ -1,12 +1,35 @@
+import { pineconeIndex } from './pinecone';
+import { ChunkData } from './types';
+
 /**
- * A chunk, which represents one section of a Wikipedia page (or one part of a long section)
+ * Store chunks in Pinecone, tagged by `url`
  */
-export interface ChunkData {
-  content: string;
-  embedding: number[];
+export async function storeChunks(userId: string, chunks: ChunkData[]) {
+  const vectors = chunks.map((chunk, i) => ({
+    id: `${userId}-${chunk.url}-${i}`,
+    values: chunk.embedding,
+    metadata: {
+      content: chunk.content,
+      userId,
+      url: chunk.url,
+    },
+  }));
+  await pineconeIndex.upsert(vectors);
 }
 
 /**
- * This is the database that holds all our chunks and embeddings.
+ * Retrieve top-N relevant chunks from Pinecone for a given query
  */
-export const vectorStore: Array<ChunkData> = [];
+export async function queryChunks(userId: string, queryEmbedding: number[], topK = 3) {
+  const { matches } = await pineconeIndex.query({
+    topK,
+    vector: queryEmbedding,
+    filter: { userId },
+    includeMetadata: true,
+  });
+
+  return matches.map((match) => ({
+    content: match.metadata?.content || '',
+    embedding: queryEmbedding,
+  }));
+}

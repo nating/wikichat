@@ -16,10 +16,10 @@ const model = openai(MODEL);
  */
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages, userId } = await req.json();
 
-    if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: 'No messages provided.' }), { status: 400 });
+    if (!userId || !messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'userId and messages required.' }), { status: 400 });
     }
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.role !== 'user' || !lastMessage.content) {
@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
     }
 
     const query = lastMessage.content;
-    const relevantChunks = await getRelevantChunks(query, 3);
+    const relevantChunks = await getRelevantChunks(query, userId, 3);
     const context = relevantChunks.map((c) => c.content).join('\n---\n');
     const system = [
-      "You are a friendly, helpful and eager AI assistant. Please answer the user's queries using only the context of these sections from the Wikipedia page they submitted earlier:",
+      "You are a friendly, helpful and eager AI assistant. Please answer the user's queries using only the context of these sections from the Wikipedia pages they submitted earlier:",
       context,
       "Use ONLY those sections as your context to answer. If unsure of the answer, just tell the user that.",
     ].join("\n\n");

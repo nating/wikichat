@@ -7,12 +7,12 @@ import { embedSections } from '@/lib/embeddings';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
-    if (!url) {
-      return NextResponse.json({ error: 'No URL provided.' }, { status: 400 });
+    const { url, userId } = await request.json();
+    if (!url || !userId) {
+      return NextResponse.json({ error: 'URL and userId required.' }, { status: 400 });
     }
     const wikiSections = await scrapeWikipediaPage(url);
-    await embedSections(wikiSections);
+    await embedSections(wikiSections, url, userId);
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     console.error('Error in /api/scrape:', err);

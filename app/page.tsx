@@ -3,12 +3,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 
+/**
+ * Get the user's ID or create one for them if none exists
+ */
+function getOrCreateUserId(): string {
+  if (typeof window === 'undefined') return '';
+  const existing = localStorage.getItem('user-id');
+  if (existing) return existing;
+  const newId = crypto.randomUUID();
+  localStorage.setItem('user-id', newId);
+  return newId;
+}
+
 export default function HomePage() {
+  const userId = useRef(getOrCreateUserId());
   const [wikiUrl, setWikiUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat',
+    body: { userId: userId.current },
   });
 
   /**
@@ -23,7 +37,7 @@ export default function HomePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: wikiUrl }),
+        body: JSON.stringify({ url: wikiUrl, userId: userId.current }),
       });
       if (!res.ok) throw new Error('Failed to scrape page');
       setIsScraped(true);
