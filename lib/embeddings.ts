@@ -36,18 +36,24 @@ function chunkSections(sections: Array<{ heading: string; content: string }>): s
   return allChunks;
 }
 
-export async function embedSections(sections: Array<{ heading: string; content: string }>, url: string, userId: string): Promise<void> {
+export async function embedSections(
+  sections: Array<{ heading: string; content: string }>,
+  url: string,
+  userId: string
+): Promise<void> {
   const chunks = chunkSections(sections);
   const { embeddings } = await embedMany({
     model,
     values: chunks,
   });
 
+  const safeUrl = Buffer.from(url).toString('base64');
+
   const chunkData = chunks.map((chunk, i) => ({
     content: chunk,
     embedding: embeddings[i],
     url,
-    vectorId: `${userId}-${url}-${i}`,
+    vectorId: `${userId}-${safeUrl}-${i}`,
   }));
 
   await storeChunks(userId, chunkData);
@@ -57,7 +63,7 @@ export async function embedSections(sections: Array<{ heading: string; content: 
       url,
       vectorId: chunk.vectorId,
     }))
-  );
+  )
 }
 
 export async function getRelevantChunks(query: string, userId: string, numberOfResults = 3) {
