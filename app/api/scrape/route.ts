@@ -25,6 +25,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Error in /api/scrape:', err);
-    return NextResponse.json({ error: err.message || 'Failed to scrape page.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to scrape page.' }, { status: 500 });
   }
 }
