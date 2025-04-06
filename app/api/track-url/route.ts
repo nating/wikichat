@@ -1,35 +1,38 @@
-import { db } from '@/lib/db';
-import { scrapedUrls, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { scrapedUrls } from '@/lib/db/schema';
+import { logger } from '@/lib/logger';
 import { sanitizeWikipediaUrlOrThrow } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
+  const requestId = uuidv4();
   try {
-    const { userId, url } = await req.json();
+    const { url, userId } = await request.json();
+    logger.info({ requestId, userId, url }, '[track-url] Tracking URL');
 
-    if (!userId || !url) {
-      return NextResponse.json({ error: 'Missing userId or url' }, { status: 400 });
+    if (!url || !userId) {
+      logger.warn({ requestId }, '[track-url] Missing url or userId');
+      return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    }
+
+    const exists = await db.query.scrapedUrls.findFirst({
+      where: (fields, { eq }) => eq(fields.userId, userId) && eq(fields.url, url),
+    });
+
+    if (exists) {
+      logger.info({ requestId }, '[track-url] URL already exists');
+      return NextResponse.json({ success: true, alreadyExists: true });
     }
 
     const sanitizedUrl = sanitizeWikipediaUrlOrThrow(url);
 
-    await db.insert(users).values({ id: userId }).onConflictDoNothing();
+    await db.insert(scrapedUrls).values({ url: sanitizedUrl, userId });
+    logger.info({ requestId }, '[track-url] URL inserted');
 
-    const existing = await db
-      .select()
-      .from(scrapedUrls)
-      .where(eq(scrapedUrls.userId, userId))
-      .then((rows) => rows.find((r) => r.url === sanitizedUrl));
-
-    if (existing) {
-      return NextResponse.json({ success: true, alreadyExists: true }, { status: 200 });
-    }
-
-    await db.insert(scrapedUrls).values({ userId, url: sanitizedUrl });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error('Error in /api/track-url:', err);
-    return NextResponse.json({ error: 'Failed to track scraped URL.' }, { status: 500 });
+    return NextResponse.json({ success: true, alreadyExists: false });
+  } catch (err: any) {
+    logger.error({ requestId, err }, '[track-url] Failed to track URL');
+    return NextResponse.json({ error: 'Failed to track URL.' }, { status: 500 });
   }
 }

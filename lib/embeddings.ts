@@ -1,12 +1,13 @@
+import { db } from '@/lib/db';
+import { vectorMetadata } from '@/lib/db/schema';
+import { toUrlSafeBase64 } from '@/lib/utils';
+import { pineconeIndex } from '@/lib/pinecone';
+import { logger } from '@/lib/logger';
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { storeChunks, queryChunks } from './vector-store';
-import { db } from './db';
-import { vectorMetadata } from './db/schema';
-import { toUrlSafeBase64 } from './utils';
 
 const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || '4000', 10);
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small'
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
 const model = openai.embedding(EMBEDDING_MODEL);
 
 function chunkSection(heading: string, content: string): string[] {
@@ -39,10 +40,12 @@ function chunkSections(sections: Array<{ heading: string; content: string }>): s
 
 export async function embedSections(
   sections: Array<{ heading: string; content: string }>,
-  url: string,
-  userId: string
+  userId: string,
+  url: string
 ): Promise<void> {
   const chunks = chunkSections(sections);
+  logger.info({ userId, url, chunkCount: chunks.length }, '[embedding] Preparing to embed sections');
+
   const { embeddings } = await embedMany({
     model,
     values: chunks,
@@ -50,24 +53,56 @@ export async function embedSections(
 
   const safeUrl = toUrlSafeBase64(url);
 
-  const chunkData = chunks.map((chunk, i) => ({
-    content: chunk,
-    embedding: embeddings[i],
+  const pineconeVectors = chunks.map((content, i) => ({
+    id: `${userId}-${safeUrl}-${i}`,
+    values: embeddings[i],
+    metadata: { userId, url, content },
+  }));
+
+  const dbEntries = chunks.map((content, i) => ({
+    userId,
     url,
     vectorId: `${userId}-${safeUrl}-${i}`,
   }));
 
-  await storeChunks(userId, chunkData);
-  await db.insert(vectorMetadata).values(
-    chunkData.map((chunk) => ({
-      userId,
-      url,
-      vectorId: chunk.vectorId,
-    }))
-  )
+  logger.info({ userId, url }, '[embedding] Upserting into Pinecone');
+  await pineconeIndex.upsert(pineconeVectors);
+
+  logger.info({ userId, url }, '[embedding] Inserting into Neon');
+  await db.insert(vectorMetadata).values(dbEntries);
+
+  logger.info({ userId, url }, '[embedding] Embedding process complete');
 }
 
 export async function getRelevantChunks(query: string, userId: string, numberOfResults = 3) {
   const { embedding } = await embed({ model, value: query });
-  return await queryChunks(userId, embedding, numberOfResults);
+
+  const result = await pineconeIndex.query({
+    topK: numberOfResults,
+    vector: embedding,
+    filter: { userId },
+    includeMetadata: true,
+  });
+
+  logger.info({ userId, query, matches: result.matches.length }, '[embedding] Retrieved relevant chunks');
+
+  return result.matches.map((match) => ({
+    content: match.metadata?.content as string,
+    embedding: match.values as number[],
+  }));
+}
+
+export async function getAllVectorIdsForUrl(userId: string, url: string): Promise<string[]> {
+  const dummyVector = Array(1536).fill(0);
+
+  const result = await pineconeIndex.query({
+    topK: 1000,
+    vector: dummyVector,
+    filter: { userId, url },
+    includeMetadata: false,
+  });
+
+  const ids = result.matches.map((match) => match.id);
+  logger.info({ userId, url, count: ids.length }, '[embedding] Retrieved vector IDs for deletion');
+  return ids;
 }

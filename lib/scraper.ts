@@ -1,4 +1,5 @@
 import type { Page } from 'puppeteer-core';
+import { logger } from '@/lib/logger';
 
 export async function scrapeWikipediaPage(
   url: string
@@ -68,6 +69,7 @@ export async function scrapeWikipediaPage(
       }
     }) as { heading: string; content: string }[];
 
+    logger.info({ url, sectionCount: sections.length }, '[scraper] Extracted sections from Wikipedia');
     return sections;
   } finally {
     await browser.close();
