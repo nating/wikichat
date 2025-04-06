@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger';
 import { sanitizeWikipediaUrlOrThrow } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'nodejs';
+
 /**
  * Scrape endpoint that takes a URL for a Wikipedia page and creates embeddings of the sections of the page
  */

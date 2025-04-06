@@ -5,6 +5,7 @@ import { openai } from '@ai-sdk/openai';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'nodejs';
 const MODEL = process.env.MODEL || 'gpt-4o-mini';
 const model = openai(MODEL);
 

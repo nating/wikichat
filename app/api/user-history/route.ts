@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   const requestId = uuidv4();
   try {

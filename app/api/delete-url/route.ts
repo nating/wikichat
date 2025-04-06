@@ -7,6 +7,8 @@ import { logger } from '@/lib/logger';
 import { getAllVectorIdsForUrl } from '@/lib/embeddings';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'nodejs';
+
 export async function DELETE(request: NextRequest) {
   const requestId = uuidv4();
   try {
