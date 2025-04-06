@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     logger.info({ requestId, count: urls.length }, '[user-history] URLs fetched');
 
     return NextResponse.json({ urls });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ requestId, err }, '[user-history] Failed to fetch user history');
     return NextResponse.json({ error: 'Failed to fetch user history.' }, { status: 500 });
   }

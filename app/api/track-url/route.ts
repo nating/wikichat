@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     logger.info({ requestId }, '[track-url] URL inserted');
 
     return NextResponse.json({ success: true, alreadyExists: false });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ requestId, err }, '[track-url] Failed to track URL');
     return NextResponse.json({ error: 'Failed to track URL.' }, { status: 500 });
   }

@@ -10,16 +10,10 @@ export async function scrapeWikipediaPage(
     ? await import('puppeteer')
     : await import('puppeteer-core');
 
-  let chromium: typeof import('chrome-aws-lambda') | null = null;
-  if (!isDev) {
-    chromium = (await import('chrome-aws-lambda')).default;
-  }
-
   const browser = await puppeteer.launch({
-    headless: chromium?.headless ?? true,
-    args: chromium?.args ?? ['--no-sandbox', '--disable-setuid-sandbox'],
-    defaultViewport: chromium?.defaultViewport ?? null,
-    executablePath: isDev ? undefined : await chromium!.executablePath,
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    executablePath: isDev ? undefined : '/usr/bin/chromium-browser',
   });
 
   try {

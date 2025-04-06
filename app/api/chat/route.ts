@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     logger.info({ requestId }, '[chat] Streaming response');
     return result.toDataStreamResponse();
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ requestId, err }, '[chat] Failed to handle chat request');
     return new Response(JSON.stringify({ error: 'Failed to chat.' }), { status: 500 });
   }

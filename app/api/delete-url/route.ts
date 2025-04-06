@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest) {
     logger.info({ requestId }, '[delete-url] URL deleted from database');
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ requestId, err }, '[delete-url] Failed to delete URL');
     return NextResponse.json({ error: 'Failed to delete URL.' }, { status: 500 });
   }

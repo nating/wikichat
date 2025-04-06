@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     logger.info({ requestId }, '[scrape] Embedding complete');
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ requestId, err }, '[scrape] Error during scraping');
     return NextResponse.json({ error: 'Failed to scrape page.' }, { status: 500 });
   }
