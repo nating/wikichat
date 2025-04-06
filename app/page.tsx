@@ -62,15 +62,20 @@ export default function HomePage() {
         return;
       }
 
-      const res = await fetch('/api/scrape', {
+      const scrapeRes = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
       });
 
-      if (!res.ok) {
-        const { error } = await res.json();
-        setWarning(error || 'Failed to scrape the page.');
+      if (!scrapeRes.ok) {
+        let scrapeJson;
+        try {
+          scrapeJson = await scrapeRes.json();
+        } catch {
+          throw new Error('Received non-JSON response from scrape endpoint');
+        }
+        setWarning(scrapeJson.error || 'Failed to scrape the page.');
         return;
       }
 
@@ -80,7 +85,12 @@ export default function HomePage() {
         body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
       });
 
-      const trackJson = await trackRes.json();
+      let trackJson;
+      try {
+        trackJson = await trackRes.json();
+      } catch {
+        throw new Error('Received non-JSON response from scrape endpoint');
+      }
       if (!trackRes.ok || !trackJson.success) {
         setWarning(trackJson.error || 'Failed to track URL.');
         return;
