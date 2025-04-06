@@ -1,9 +1,10 @@
+import { and } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
-import { scrapedUrls } from '@/lib/db/schema';
+import { scrapedUrls, users } from '@/lib/db/schema';
 import { logger } from '@/lib/logger';
 import { sanitizeWikipediaUrlOrThrow } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
 
 export const runtime = 'nodejs';
 
@@ -18,16 +19,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
+    const sanitizedUrl = sanitizeWikipediaUrlOrThrow(url);
+
+    await db.insert(users).values({ id: userId }).onConflictDoNothing();
+
     const exists = await db.query.scrapedUrls.findFirst({
-      where: (fields, { eq }) => eq(fields.userId, userId) && eq(fields.url, url),
+      where: (fields, { eq }) => and(eq(fields.userId, userId), eq(fields.url, sanitizedUrl)),
     });
 
     if (exists) {
-      logger.info({ requestId }, '[track-url] URL already exists');
+      logger.info({ requestId, exists }, '[track-url] URL already exists');
       return NextResponse.json({ success: true, alreadyExists: true });
     }
-
-    const sanitizedUrl = sanitizeWikipediaUrlOrThrow(url);
 
     await db.insert(scrapedUrls).values({ url: sanitizedUrl, userId });
     logger.info({ requestId }, '[track-url] URL inserted');

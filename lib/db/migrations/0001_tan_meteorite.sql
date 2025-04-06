@@ -1,0 +1,1 @@
+ALTER TABLE "vector_metadata" DROP CONSTRAINT "vector_metadata_vector_id_unique";

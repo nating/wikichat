@@ -1,0 +1,1 @@
+ALTER TABLE "vector_metadata" ADD CONSTRAINT "vector_metadata_vector_id_unique" UNIQUE("vector_id");

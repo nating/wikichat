@@ -1,5 +1,7 @@
 import { embedSections } from '@/lib/embeddings';
 import { logger } from '@/lib/logger';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +15,8 @@ export async function POST(req: Request) {
       logger.warn('[embed] Missing userId, url, or sections');
       return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
     }
+
+    await db.insert(users).values({ id: userId }).onConflictDoNothing();
 
     await embedSections(sections, userId, url);
     logger.info({ userId, url }, '[embed] Successfully embedded content');
