@@ -10,6 +10,7 @@ interface ChatInputProps {
 export function ChatInput({ input, handleInputChange, handleSubmit }: ChatInputProps) {
   return (
     <form
+      data-testid="chat-form"
       onSubmit={handleSubmit}
       className="w-full flex flex-col sm:flex-row gap-3 items-end pt-4"
     >
