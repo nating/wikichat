@@ -11,6 +11,7 @@ export const runtime = 'nodejs';
  * Scrape endpoint that takes a URL for a Wikipedia page and creates embeddings of the sections of the page
  */
 export async function POST(request: NextRequest) {
+  console.log('at the scrape endpoint gnx');
   const requestId = uuidv4();
   try {
     const { url, userId } = await request.json();
@@ -32,6 +33,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: unknown) {
     logger.error({ requestId, err }, '[scrape] Error during scraping');
-    return NextResponse.json({ error: 'Failed to scrape page.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to scrape page.', requestId, err }, { status: 500 });
   }
 }

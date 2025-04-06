@@ -1,19 +1,18 @@
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import type { Page } from 'puppeteer-core';
 import { logger } from '@/lib/logger';
+
+export const runtime = 'nodejs';
 
 export async function scrapeWikipediaPage(
   url: string
 ): Promise<Array<{ heading: string; content: string }>> {
-  const isDev = process.env.NODE_ENV === 'development';
-
-  const puppeteer = isDev
-    ? await import('puppeteer')
-    : await import('puppeteer-core');
-
   const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    executablePath: isDev ? undefined : '/usr/bin/chromium-browser',
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 
   try {
@@ -61,10 +60,13 @@ export async function scrapeWikipediaPage(
         console.error('Scraping failed in page.evaluate:', e);
         return [];
       }
-    }) as { heading: string; content: string }[];
+    });
 
     logger.info({ url, sectionCount: sections.length }, '[scraper] Extracted sections from Wikipedia');
     return sections;
+  } catch (err) {
+    logger.error({ url, err }, '[scraper] Error during scraping');
+    throw new Error('Failed to scrape page.');
   } finally {
     await browser.close();
   }
