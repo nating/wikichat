@@ -1,38 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { scrapeWikipediaPage } from '@/lib/scraper';
-import { embedSections } from '@/lib/embeddings';
 import { logger } from '@/lib/logger';
-import { sanitizeWikipediaUrlOrThrow } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
 
 export const runtime = 'nodejs';
 
-/**
- * Scrape endpoint that takes a URL for a Wikipedia page and creates embeddings of the sections of the page
- */
-export async function POST(request: NextRequest) {
-  console.log('at the scrape endpoint gnx');
-  const requestId = uuidv4();
-  try {
-    const { url, userId } = await request.json();
-    logger.info({ requestId, userId, url }, '[scrape] Scrape request received');
+export async function POST(req: Request) {
+  logger.info('[scrape] Scrape request received');
 
-    if (!url || !userId) {
-      logger.warn({ requestId }, '[scrape] Missing url or userId');
-      return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+  try {
+    const { url } = await req.json();
+    if (!url) {
+      logger.warn('[scrape] Missing URL in request');
+      return new Response(JSON.stringify({ error: 'Missing URL' }), { status: 400 });
     }
 
-    const sanitizedUrl = sanitizeWikipediaUrlOrThrow(url);
+    const sections = await scrapeWikipediaPage(url);
+    logger.info({ url, sectionCount: sections.length }, '[scrape] Successfully scraped sections');
 
-    const wikiSections = await scrapeWikipediaPage(sanitizedUrl);
-    logger.info({ requestId, sectionCount: wikiSections.length }, '[scrape] Scraped page sections');
-
-    await embedSections(wikiSections, userId, sanitizedUrl);
-    logger.info({ requestId }, '[scrape] Embedding complete');
-
-    return NextResponse.json({ success: true }, { status: 200 });
-  } catch (err: unknown) {
-    logger.error({ requestId, err }, '[scrape] Error during scraping');
-    return NextResponse.json({ error: 'Failed to scrape page.', requestId, err }, { status: 500 });
+    return new Response(JSON.stringify({ sections }), { status: 200 });
+  } catch (err) {
+    logger.error({ err }, '[scrape] Error during scraping');
+    return new Response(JSON.stringify({ error: 'Failed to scrape page.' }), { status: 500 });
   }
 }

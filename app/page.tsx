@@ -1,6 +1,3 @@
-// This is the modernized, clean, and componentized version of your HomePage
-// with world-class UI/UX and best practices baked in
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -27,6 +24,7 @@ export default function HomePage() {
   const userId = useRef(getOrCreateUserId());
   const [wikiUrl, setWikiUrl] = useState('');
   const [scraping, setScraping] = useState(false);
+  const [embedding, setEmbedding] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
   const [urls, setUrls] = useState<string[]>([]);
   const [warning, setWarning] = useState('');
@@ -44,19 +42,13 @@ export default function HomePage() {
   const submitUrl = async () => {
     try {
       setScraping(true);
-      setIsScraped(false);
-
-      if (!wikiUrl.trim()) {
-        setWarning('Please enter a Wikipedia URL.');
-        return;
-      }
+      setWarning('');
 
       const sanitizedUrl = sanitizeWikipediaUrl(wikiUrl);
-      if (!sanitizedUrl) {
+      if (!wikiUrl.trim() || !sanitizedUrl) {
         setWarning('Please enter a valid Wikipedia article URL.');
         return;
       }
-
       if (urls.includes(sanitizedUrl)) {
         setWarning('You’ve already scraped this page.');
         return;
@@ -65,17 +57,23 @@ export default function HomePage() {
       const scrapeRes = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
+        body: JSON.stringify({ url: sanitizedUrl }),
       });
-
-      if (!scrapeRes.ok) {
-        let scrapeJson;
-        try {
-          scrapeJson = await scrapeRes.json();
-        } catch {
-          throw new Error('Received non-JSON response from scrape endpoint');
-        }
+      const scrapeJson = await scrapeRes.json();
+      if (!scrapeRes.ok || !scrapeJson.sections) {
         setWarning(scrapeJson.error || 'Failed to scrape the page.');
+        return;
+      }
+
+      setEmbedding(true);
+      const embedRes = await fetch('/api/embed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: sanitizedUrl, userId: userId.current, sections: scrapeJson.sections }),
+      });
+      const embedJson = await embedRes.json();
+      if (!embedRes.ok || !embedJson.success) {
+        setWarning(embedJson.error || 'Failed to embed the page.');
         return;
       }
 
@@ -84,13 +82,7 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sanitizedUrl, userId: userId.current }),
       });
-
-      let trackJson;
-      try {
-        trackJson = await trackRes.json();
-      } catch {
-        throw new Error('Received non-JSON response from scrape endpoint');
-      }
+      const trackJson = await trackRes.json();
       if (!trackRes.ok || !trackJson.success) {
         setWarning(trackJson.error || 'Failed to track URL.');
         return;
@@ -102,19 +94,18 @@ export default function HomePage() {
 
       setIsScraped(true);
       setWikiUrl(sanitizedUrl);
-      setWarning('');
     } catch (err) {
-      console.error('Scrape error:', err);
-      setWarning('Something went wrong while scraping.');
+      console.error('Scrape/embed error:', err);
+      setWarning('Something went wrong while scraping and embedding.');
     } finally {
       setScraping(false);
+      setEmbedding(false);
     }
   };
 
   const deleteUrl = async (urlToDelete: string) => {
     const confirmed = confirm(`Delete:\n\n${urlToDelete}?`);
     if (!confirmed) return;
-
     try {
       const res = await fetch('/api/delete-url', {
         method: 'DELETE',
@@ -138,7 +129,6 @@ export default function HomePage() {
       try {
         const res = await fetch(`/api/user-history?userId=${userId.current}`);
         if (!res.ok) return;
-
         const { urls } = await res.json();
         if (urls?.length > 0) {
           setIsScraped(true);
@@ -152,10 +142,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!wikiUrl) {
-      setWarning('');
-      return;
-    }
+    if (!wikiUrl) return setWarning('');
     const sanitized = sanitizeWikipediaUrl(wikiUrl);
     setWarning(!sanitized ? 'Please enter a valid Wikipedia article URL.' : '');
   }, [wikiUrl]);
@@ -176,8 +163,8 @@ export default function HomePage() {
           warning={warning}
           onChange={(val) => setWikiUrl(val)}
           onSubmit={submitUrl}
-          disabled={scraping || alreadyScraped}
-          scraping={scraping}
+          disabled={scraping || embedding || alreadyScraped}
+          scraping={scraping || embedding}
           alreadyScraped={alreadyScraped}
         />
 
