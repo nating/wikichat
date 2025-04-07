@@ -11,6 +11,11 @@
   --color-accent: #f472b6;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Dark theme overrides */
 html[data-theme="dark"] {
   --background: #0a0a0a;

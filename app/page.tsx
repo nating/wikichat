@@ -26,6 +26,7 @@ export default function HomePage() {
   const [scraping, setScraping] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [urls, setUrls] = useState<string[]>([]);
   const [warning, setWarning] = useState('');
   const { messages, input, handleInputChange, handleSubmit } = useChat({
@@ -93,7 +94,7 @@ export default function HomePage() {
       }
 
       setIsScraped(true);
-      setWikiUrl(sanitizedUrl);
+      setWikiUrl('');
     } catch (err) {
       console.error('Scrape/embed error:', err);
       setWarning('Something went wrong while scraping and embedding.');
@@ -104,8 +105,6 @@ export default function HomePage() {
   };
 
   const deleteUrl = async (urlToDelete: string) => {
-    const confirmed = confirm(`Delete:\n\n${urlToDelete}?`);
-    if (!confirmed) return;
     try {
       const res = await fetch('/api/delete-url', {
         method: 'DELETE',
@@ -136,6 +135,8 @@ export default function HomePage() {
         }
       } catch (err) {
         console.warn('Failed to fetch user history:', err);
+      } finally {
+        setLoadingHistory(false);
       }
     };
     checkHistory();
@@ -148,13 +149,13 @@ export default function HomePage() {
   }, [wikiUrl]);
 
   return (
-    <div className="w-full min-h-screen bg-background">
-      <main className="mx-auto max-w-2xl p-6 flex flex-col gap-8">
+    <div className="w-full h-screen bg-background flex flex-col overflow-hidden">
+      <main className="mx-auto w-full max-w-2xl p-4 sm:p-6 flex flex-col gap-6 sm:gap-8 h-screen overflow-hidden">
         <DarkModeToggle />
-        <header className="flex flex-col items-center gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground-base">Wikipedia RAG Chatbot</h1>
-          <p className="text-sm text-foreground-base-500">
-            Your ID: <code className="font-mono">{userId.current}</code>
+        <header className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight text-brand font-sans">Wikichat</h1>
+          <p className="text-xs text-foreground-base-500 break-all">
+            <code className="font-mono text-[10px] text-gray-400">{userId.current}</code>
           </p>
         </header>
 
@@ -170,20 +171,11 @@ export default function HomePage() {
 
         <ScrapedList urls={urls} onDelete={deleteUrl} />
 
-        {isScraped ? (
-          <>
-            <ChatBox messages={messages} />
-            <ChatInput
-              input={input}
-              handleInputChange={handleInputChange}
-              handleSubmit={handleSubmit}
-            />
-          </>
-        ) : (
-          <p className="text-foreground-base-700 italic text-sm text-center">
-            Please scrape a Wikipedia page to begin chatting.
-          </p>
-        )}
+        <div className="flex flex-col flex-grow min-h-0 gap-2 sm:gap-3 gap-y-6">
+          <ChatBox messages={messages} isEmpty={!isScraped} loading={loadingHistory} />
+          <ChatInput disabled={!isScraped} input={input} handleInputChange={handleInputChange} handleSubmit={handleSubmit} isLoading={scraping || embedding} />
+        </div>
+
       </main>
     </div>
   );

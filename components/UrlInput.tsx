@@ -18,28 +18,28 @@ export function UrlInput({
   onSubmit,
   disabled,
   scraping,
-  alreadyScraped,
 }: UrlInputProps) {
   return (
     <section className="w-full flex flex-col gap-2">
-      <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+      <div className="flex items-center border border-gray-300 dark:border-gray-700 bg-background rounded-xl p-2 shadow-sm">
         <input
-          className="flex-1 h-[48px] rounded-lg border border-gray-300 dark:border-gray-700 bg-background px-4 text-foreground placeholder-gray-500 shadow-inner focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand font-sans text-base"
+          className="flex-1 h-[48px] rounded-lg px-4 text-foreground placeholder-gray-500 bg-background border-none focus:outline-none font-sans text-base"
           type="text"
           placeholder="Wikipedia article URL..."
           value={wikiUrl}
           onChange={(e) => onChange(e.target.value)}
+          disabled={scraping}
         />
         <button
           onClick={onSubmit}
-          disabled={!wikiUrl || disabled}
-          className={`h-[48px] rounded-lg px-6 text-sm font-semibold font-sans shadow transition duration-150 transform active:scale-[0.97] ${
-            !wikiUrl || disabled
-              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-              : 'bg-brand text-white hover:bg-[--color-brand-dark]'
-          }`}
+          disabled={!wikiUrl || disabled || !!warning}
+          className="h-[40px] w-[40px] rounded-full bg-brand hover:bg-[--color-brand-dark] text-white text-sm font-bold flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          {scraping ? 'Scraping...' : alreadyScraped ? 'Already Scraped' : 'Scrape'}
+          {scraping ? (
+            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            '➤'
+          )}
         </button>
       </div>
       {warning && <p className="text-sm text-red-500 font-medium italic mt-1 pl-1 font-sans">{warning}</p>}
